@@ -2,8 +2,8 @@ import { Args, Mutation, Query, Resolver, ID, ResolveField, Parent } from "@nest
 import { ImageType } from "./image.type"
 import { ImageService } from "./image.service"
 import { CreateImageInput, UpdateImageInput } from "./image.dtos"
-import { ProductType } from "src/product/product.type"
-import { Product } from "src/product/product.entity"
+import { ProductType } from "../product/product.type"
+import { Product } from "../product/product.entity"
 import { Image } from "./image.entity"
 
 @Resolver((_of: ImageType) => ImageType)

@@ -3,8 +3,8 @@ import { ProductType } from "./product.type"
 import { ProductService } from "./product.service"
 import { CreateProductInput, UpdateProductInput } from "./product.dtos"
 import { Product } from "./product.entity"
-import { ImageType } from "src/image/image.type"
-import { Image } from "src/image/image.entity"
+import { ImageType } from "../image/image.type"
+import { Image } from "../image/image.entity"
 
 @Resolver((_of: ProductType) => ProductType)
 export class ProductResolver {

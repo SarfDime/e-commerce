@@ -3,7 +3,7 @@ import { ImageService } from './image.service'
 import { ImageResolver } from './image.resolver'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { Image } from './image.entity'
-import { Product } from 'src/product/product.entity'
+import { Product } from '../product/product.entity'
 
 @Module({
   imports: [TypeOrmModule.forFeature([Image, Product])],
