@@ -1,5 +1,5 @@
-import { InputType, Field } from '@nestjs/graphql';
-import { IsNotEmpty, IsNumber, IsOptional, IsString, IsUrl } from 'class-validator';
+import { InputType, Field } from '@nestjs/graphql'
+import { IsNotEmpty, IsNumber, IsOptional, IsString, IsUrl } from 'class-validator'
 
 @InputType()
 export class CreateImageInput {
@@ -7,12 +7,12 @@ export class CreateImageInput {
     @IsNotEmpty()
     @IsString()
     @IsUrl({}, { message: 'url value must be a valid URL' })
-    url: string;
+    url: string
 
     @Field()
     @IsNotEmpty()
     @IsNumber()
-    priority: number;
+    priority: number
 }
 
 @InputType()
@@ -21,10 +21,10 @@ export class UpdateImageInput {
     @IsOptional()
     @IsString()
     @IsUrl(undefined, { message: 'url value is not valid URL.' })
-    url?: string;
+    url?: string
 
     @Field({ nullable: true })
     @IsNumber()
-    priority?: number;
+    priority?: number
 }
 

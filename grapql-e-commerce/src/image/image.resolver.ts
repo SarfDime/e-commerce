@@ -1,10 +1,10 @@
-import { Args, Mutation, Query, Resolver, ID, ResolveField, Parent } from "@nestjs/graphql";
-import { ImageType } from "./image.type";
-import { ImageService } from "./image.service";
-import { CreateImageInput, UpdateImageInput } from "./image.dtos";
-import { ProductType } from "src/product/product.type";
-import { Product } from "src/product/product.entity";
-import { Image } from "./image.entity";
+import { Args, Mutation, Query, Resolver, ID, ResolveField, Parent } from "@nestjs/graphql"
+import { ImageType } from "./image.type"
+import { ImageService } from "./image.service"
+import { CreateImageInput, UpdateImageInput } from "./image.dtos"
+import { ProductType } from "src/product/product.type"
+import { Product } from "src/product/product.entity"
+import { Image } from "./image.entity"
 
 @Resolver((_of: ImageType) => ImageType)
 export class ImageResolver {
@@ -23,11 +23,11 @@ export class ImageResolver {
         @Args('image') image: CreateImageInput,
         @Args('productId', { type: () => ID }) productId: string
     ) {
-        return this.imageService.createImage(image, productId);
+        return this.imageService.createImage(image, productId)
     }
     @Mutation(_returns => ImageType)
     updateImage(@Args('id', { type: () => ID }) id: string, @Args("image") image: UpdateImageInput) {
-        return this.imageService.updateImage(id, image);
+        return this.imageService.updateImage(id, image)
     }
 
     @Mutation(_returns => Number)
@@ -37,6 +37,6 @@ export class ImageResolver {
 
     @ResolveField('product', _returns => ProductType)
     async product(@Parent() image: Image): Promise<Product> {
-        return this.imageService.getProductForImage(image.id);
+        return this.imageService.getProductForImage(image.id)
     }
 }

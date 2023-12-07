@@ -1,16 +1,16 @@
-import { Field, ID, ObjectType } from "@nestjs/graphql";
-import { ImageType } from "src/image/image.type";
+import { Field, ID, ObjectType } from "@nestjs/graphql"
+import { ImageType } from "src/image/image.type"
 
 @ObjectType('Product')
 export class ProductType {
     @Field(_type => ID)
-    id: string;
+    id: string
     @Field()
-    name: string;
+    name: string
     @Field()
-    price: number;
+    price: number
     @Field()
-    status: string;
+    status: string
     @Field(_type => [ImageType], { nullable: 'itemsAndList' }) 
-    images: ImageType[]; 
+    images: ImageType[] 
 }
