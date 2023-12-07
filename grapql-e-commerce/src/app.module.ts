@@ -5,19 +5,24 @@ import { ProductModule } from './product/product.module';
 import { ImageModule } from './image/image.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Product } from './product/product.entity';
+import { Image } from './image/image.entity';
+import { ConfigModule } from '@nestjs/config';
+
+
 
 @Module({
   imports: [
+    ConfigModule.forRoot(),
     TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: 'dimedime123',
-      database: 'Ecommerce',
+      type: process.env.DB_TYPE as 'postgres', // Cast to 'postgres' type
+      host: process.env.DB_HOST,
+      port: parseInt(process.env.DB_PORT, 10), // Convert string to number
+      username: process.env.DB_USERNAME,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_DATABASE,
       autoLoadEntities: true,
       synchronize: true,
-      entities: [Product]
+      entities: [Product, Image]
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,

@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm'
+import { Image } from 'src/image/image.entity';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm'
 
 @Entity()
 export class Product {
@@ -10,4 +11,11 @@ export class Product {
     price: number;
     @Column({ default: 'active' })
     status: string;
+    @OneToMany(() => Image, image => image.product, {
+        cascade: true,
+        eager: false,
+        nullable: true,
+        onDelete: "CASCADE"
+    })
+    images: Image[];
 }
