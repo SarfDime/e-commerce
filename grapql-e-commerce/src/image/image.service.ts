@@ -10,14 +10,14 @@ export class ImageService {
     constructor(@InjectRepository(Image) private imageRepository: Repository<Image>, @InjectRepository(Product) private productRepository: Repository<Product>) { }
 
     async getImages(): Promise<Image[]> {
-        const images = this.imageRepository.find()
-        if (!images) throw new NotFoundException(`No images found`)
+        const images = await this.imageRepository.find()
+        if (images.length === 0) throw new NotFoundException('No images found')
         return images
     }
 
     async getImage(id: string): Promise<Image> {
-        if (!id) throw new BadRequestException(`You must provide a valid image ID`)
-        const image = this.imageRepository.findOne({ where: { id } })
+        if (!id) throw new BadRequestException('You must provide a valid image ID')
+        const image = await this.imageRepository.findOne({ where: { id } })
         if (!image) throw new NotFoundException(`Image with ID ${id} does not exist`)
         return image
     }
@@ -41,20 +41,21 @@ export class ImageService {
             ...createImageInput,
             product: product
         })
-        return this.imageRepository.save(newImage)
+        return await this.imageRepository.save(newImage)
     }
 
     async updateImage(id: string, updateImageDto: UpdateImageInput): Promise<Image> {
         if (!id) throw new BadRequestException(`You must provide a valid image ID`)
         if (!Object.keys(updateImageDto).length) throw new BadRequestException(`You must provide valid image info`)
-        await this.imageRepository.update(id, updateImageDto)
-        return this.imageRepository.findOne({ where: { id } })
+        const updatedImage = await this.imageRepository.update(id, updateImageDto)
+        if (updatedImage.affected) return await this.imageRepository.findOne({ where: { id } })
+        throw new NotFoundException(`Image with ID ${id} not found`)
     }
 
-    async removeImages(ids: string[]): Promise<number> {
+    async removeImages(ids: string[]): Promise<string> {
         if (!ids) throw new BadRequestException(`You must provide valid image IDs`)
         const result = await this.imageRepository.delete(ids)
-        if (!result.affected) throw new BadRequestException(`No images were removed`)
-        return result.affected
+        if (!result.affected) throw new BadRequestException(`No images have been removed`)
+        return `${result.affected} ${result.affected === 1 ? "Image has" : "Images have"} been removed`
     }
 }

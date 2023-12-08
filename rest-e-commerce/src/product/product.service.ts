@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common'
+import { Injectable, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common'
 import { ProductDto, uProductDto } from '../dto/dtos'
 import { PrismaService } from '../../prisma/prisma.service'
 
@@ -14,7 +14,7 @@ export class ProductService {
     }
 
     async createProduct(productDto: ProductDto) {
-        if (!Object.keys(productDto).length) throw new BadRequestException(`You must provide valid product info`)
+        if (!productDto?.name || !productDto?.price) throw new BadRequestException(`You must provide a valid product name and price`)
         const product = await this.prism.product.create({ data: { ...productDto } })
         return `Product ${product.id} created successfully`
     }
@@ -32,9 +32,9 @@ export class ProductService {
     async deleteProduct(ID: string) {
         if (!ID) throw new BadRequestException(`You must provide a valid product ID`)
         const productById = await this.prism.product.findFirst({ where: { id: ID } })
-        if (!productById) throw new BadRequestException(`Product with ID ${ID} does not exist`)
+        if (!productById) throw new NotFoundException(`Product with ID ${ID} does not exist`)
         const count = await this.prism.product.delete({ where: { id: ID } })
-        if (!count) throw new BadRequestException(`Product with ID ${ID} was not deleted`)
+        if (!count) throw new InternalServerErrorException(`Product with ID ${ID} was not deleted`)
         return `Product ${ID} deleted successfully`
     }
 }

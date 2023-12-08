@@ -1,30 +1,41 @@
-import { PrismaService } from "../../prisma/prisma.service"
-import { BadRequestException } from "@nestjs/common"
 import { Test, TestingModule } from '@nestjs/testing'
-import { ProductService } from "./product.service"
+import { ProductService } from './product.service'
+import { PrismaService } from "../../prisma/prisma.service"
+import { NotFoundException, BadRequestException } from '@nestjs/common'
+import { mockProductArray } from '../mock/mock.product'
 
 describe('ProductService', () => {
-    let service: ProductService;
-    let prismaService;
+    let service: ProductService
+    let prismaService: PrismaService
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
-            providers: [
-                ProductService,
-                {
-                    provide: PrismaService,
-                    useValue: {
-                        product: {
-                            findMany: jest.fn(),
-                            findFirst: jest.fn(),
-                            create: jest.fn(),
-                            update: jest.fn(),
-                            delete: jest.fn(),
-                        },
-                    },
+            providers: [ProductService, PrismaService],
+        })
+            .overrideProvider(PrismaService)
+            .useValue({
+                product: {
+                    findMany: jest.fn().mockResolvedValue(mockProductArray),
+                    findFirst: jest.fn().mockImplementation((params) => {
+                        return Promise.resolve(mockProductArray.find(p => p.id === params.where.id))
+                    }),
+                    create: jest.fn().mockImplementation((params) => {
+                        return Promise.resolve({ id: 'some-unique-id', ...params.data })
+                    }),
+                    update: jest.fn().mockImplementation((params) => {
+                        return Promise.resolve({ ...params.data })
+                    }),
+                    delete: jest.fn().mockImplementation((params) => {
+                        const foundIndex = mockProductArray.findIndex(p => p.id === params.where.id)
+                        if (foundIndex > -1) {
+                            mockProductArray.splice(foundIndex, 1)
+                            return Promise.resolve({ count: 1 })
+                        }
+                        return Promise.resolve({ count: 0 })
+                    }),
                 },
-            ],
-        }).compile()
+            })
+            .compile()
 
         service = module.get<ProductService>(ProductService)
         prismaService = module.get<PrismaService>(PrismaService)
@@ -36,61 +47,61 @@ describe('ProductService', () => {
 
     describe('getProducts', () => {
         it('should return all products if no ID is provided', async () => {
-            const mockProducts = [{ id: '1', name: 'Laptop', price: 999, status: 'active' }]
-            prismaService.product.findMany.mockResolvedValue(mockProducts)
-            expect(await service.getProducts(null)).toEqual(mockProducts)
+            expect(await service.getProducts(null)).toEqual(mockProductArray)
         })
 
         it('should return a single product if ID is provided', async () => {
-            const mockProduct = { id: '1', name: 'Laptop', price: 999, status: 'active' }
-            prismaService.product.findFirst.mockResolvedValue(mockProduct)
-            expect(await service.getProducts('1')).toEqual(mockProduct)
+            const product = mockProductArray[0]
+            expect(await service.getProducts(product.id)).toEqual(product)
         })
 
-        it('should throw BadRequestException if product does not exist', async () => {
-            prismaService.product.findFirst.mockResolvedValue(null)
-            await expect(service.getProducts('nonexistent')).rejects.toThrow(BadRequestException)
+        it('should throw NotFoundException if no product is found with provided ID', async () => {
+            await expect(service.getProducts('non-existing-id')).rejects.toThrow(NotFoundException)
         })
     })
 
     describe('createProduct', () => {
-        it('should create a new product and return success message', async () => {
-            const mockProductDto = { name: 'New Laptop', price: 1200, status: 'active' }
-            const mockProduct = { id: '2', ...mockProductDto }
-            prismaService.product.create.mockResolvedValue(mockProduct)
-            expect(await service.createProduct(mockProductDto)).toEqual(`Product ${mockProduct.id} created successfully`)
+        it('should throw BadRequestException if product name is undefined', async () => {
+            const productDtoWithNoName: any = { price: 100, status: 'active' }
+            await expect(service.createProduct(productDtoWithNoName)).rejects.toThrow(BadRequestException)
+        })
+
+        it('should throw BadRequestException if product price is undefined', async () => {
+            const productDtoWithNoPrice: any = { name: 'Product', status: 'active' }
+            await expect(service.createProduct(productDtoWithNoPrice)).rejects.toThrow(BadRequestException)
         })
     })
 
     describe('updateProduct', () => {
-        it('should update a product and return success message', async () => {
-            const mockUpdateDto = { name: 'Updated Laptop', price: 1300 }
-            const productId = '2'
-            prismaService.product.findFirst.mockResolvedValue({ id: productId })
-            prismaService.product.update.mockResolvedValue({ id: productId, ...mockUpdateDto })
-            expect(await service.updateProduct(mockUpdateDto, productId)).toEqual(`Product ${productId} updated successfully`)
+        it('should update an existing product and return success message', async () => {
+            const productDto = { name: 'Updated Product', price: 150 }
+            const product = mockProductArray[0]
+            expect(await service.updateProduct(productDto, product.id)).toContain('updated successfully')
         })
 
-        it('should throw BadRequestException if product does not exist', async () => {
-            const mockUpdateDto = { name: 'Updated Laptop', price: 1300 }
-            const productId = 'nonexistent'
-            prismaService.product.findFirst.mockResolvedValue(null)
-            await expect(service.updateProduct(mockUpdateDto, productId)).rejects.toThrow(BadRequestException)
+        it('should throw BadRequestException if product ID is not provided', async () => {
+            const productDto = { name: 'Updated Product', price: 150 }
+            await expect(service.updateProduct(productDto, null)).rejects.toThrow(BadRequestException)
+        })
+
+        it('should throw NotFoundException if no product is found with provided ID', async () => {
+            const productDto = { name: 'Updated Product', price: 150 }
+            await expect(service.updateProduct(productDto, 'non-existing-id')).rejects.toThrow(NotFoundException)
         })
     })
 
     describe('deleteProduct', () => {
-        it('should delete a product and return success message', async () => {
-            const productId = '2'
-            prismaService.product.findFirst.mockResolvedValue({ id: productId })
-            prismaService.product.delete.mockResolvedValue({ count: 1 })
-            expect(await service.deleteProduct(productId)).toEqual(`Product ${productId} deleted successfully`)
+        it('should delete an existing product and return success message', async () => {
+            const product = mockProductArray[0]
+            expect(await service.deleteProduct(product.id)).toContain('deleted successfully')
         })
 
-        it('should throw BadRequestException if product does not exist', async () => {
-            const productId = 'nonexistent'
-            prismaService.product.findFirst.mockResolvedValue(null)
-            await expect(service.deleteProduct(productId)).rejects.toThrow(BadRequestException)
+        it('should throw BadRequestException if product ID is not provided', async () => {
+            await expect(service.deleteProduct(null)).rejects.toThrow(BadRequestException)
+        })
+
+        it('should throw NotFoundException if no product is found with provided ID', async () => {
+            await expect(service.deleteProduct('non-existing-id')).rejects.toThrow(NotFoundException)
         })
     })
 })

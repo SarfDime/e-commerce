@@ -1,38 +1,51 @@
-import { PrismaService } from "../../prisma/prisma.service"
-import { ImageService } from "./image.service"
-import { BadRequestException } from "@nestjs/common"
 import { Test, TestingModule } from '@nestjs/testing'
+import { ImageService } from './image.service'
+import { PrismaService } from '../../prisma/prisma.service'
+import { NotFoundException, BadRequestException } from '@nestjs/common'
+import { mockImageArray } from '../mock/mock.image'
+import { mockProduct } from '../mock/mock.product'
 
 describe('ImageService', () => {
-    let service: ImageService;
-    let prismaService;
+    let service: ImageService
+    let prismaService: PrismaService
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
-            providers: [
-                ImageService,
-                {
-                    provide: PrismaService,
-                    useValue: {
-                        image: {
-                            findMany: jest.fn(),
-                            findFirst: jest.fn(),
-                            create: jest.fn(),
-                            update: jest.fn(),
-                            delete: jest.fn(),
-                        },
-                        product: {
-                            findFirst: jest.fn(),
-                        },
-                    },
+            providers: [ImageService, PrismaService],
+        })
+            .overrideProvider(PrismaService)
+            .useValue({
+                image: {
+                    findMany: jest.fn().mockResolvedValue(mockImageArray),
+                    findFirst: jest.fn().mockImplementation((params) => {
+                        return Promise.resolve(mockImageArray.find(i => i.id === params.where.id))
+                    }),
+                    create: jest.fn().mockImplementation((params) => {
+                        return Promise.resolve({ id: 'new-image-id', ...params.data })
+                    }),
+                    update: jest.fn().mockImplementation((params) => {
+                        return Promise.resolve({ ...params.data })
+                    }),
+                    delete: jest.fn().mockImplementation((params) => {
+                        const foundIndex = mockImageArray.findIndex(i => i.id === params.where.id)
+                        if (foundIndex > -1) {
+                            mockImageArray.splice(foundIndex, 1)
+                            return Promise.resolve({ count: 1 })
+                        }
+                        return Promise.resolve({ count: 0 })
+                    }),
                 },
-            ],
-        }).compile()
+                product: {
+                    findFirst: jest.fn().mockImplementation((params) => {
+                        return Promise.resolve(params.where.id === mockProduct.id ? mockProduct : null)
+                    }),
+                },
+            })
+            .compile()
 
         service = module.get<ImageService>(ImageService)
         prismaService = module.get<PrismaService>(PrismaService)
     })
-
 
     it('should be defined', () => {
         expect(service).toBeDefined()
@@ -40,69 +53,71 @@ describe('ImageService', () => {
 
     describe('getImages', () => {
         it('should return all images if no ID is provided', async () => {
-            const mockImages = [{ id: '1', url: 'http://example.com/image.jpg', priority: 1 }]
-            prismaService.image.findMany.mockResolvedValue(mockImages)
-            expect(await service.getImages(null)).toEqual(mockImages)
+            expect(await service.getImages(null)).toEqual(mockImageArray)
         })
 
         it('should return a single image if ID is provided', async () => {
-            const mockImage = { id: '1', url: 'http://example.com/image.jpg', priority: 1 }
-            prismaService.image.findFirst.mockResolvedValue(mockImage)
-            expect(await service.getImages('1')).toEqual(mockImage)
+            const image = mockImageArray[0]
+            expect(await service.getImages(image.id)).toEqual(image)
         })
 
-        it('should throw NotFoundException if image does not exist', async () => {
-            prismaService.image.findFirst.mockResolvedValue(null)
-            await expect(service.getImages('nonexistent')).rejects.toThrow(BadRequestException)
+        it('should throw NotFoundException if no image is found with provided ID', async () => {
+            await expect(service.getImages('non-existing-id')).rejects.toThrow(NotFoundException)
         })
     })
 
     describe('createImage', () => {
         it('should create a new image and return success message', async () => {
-            const mockImageDto = { url: 'http://example.com/new-image.jpg', priority: 1 }
-            const productId = 'prod_12345'
-            const mockImage = { id: 'img_67890', ...mockImageDto }
-            prismaService.product.findFirst.mockResolvedValue({ id: productId })
-            prismaService.image.create.mockResolvedValue(mockImage)
-            expect(await service.createImage(mockImageDto, productId)).toEqual(`Image ${mockImage.id} created successfully`)
+            const imageDto = { url: 'http://example.com/image.jpg', priority: 1 }
+            expect(await service.createImage(imageDto, mockProduct.id)).toContain('created successfully')
         })
 
-        it('should throw NotFoundException if product ID does not exist', async () => {
-            const mockImageDto = { url: 'http://example.com/new-image.jpg', priority: 1 }
-            const productId = 'nonexistent'
-            prismaService.product.findFirst.mockResolvedValue(null)
-            await expect(service.createImage(mockImageDto, productId)).rejects.toThrow(BadRequestException)
+        it('should throw BadRequestException if product ID is not provided', async () => {
+            const imageDto = { url: 'http://example.com/image.jpg', priority: 1 }
+            await expect(service.createImage(imageDto, null)).rejects.toThrow(BadRequestException)
+        })
+
+        it('should throw BadRequestException if image URL is not provided', async () => {
+            const imageDto = { priority: 1 }
+            await expect(service.createImage(imageDto as any, mockProduct.id)).rejects.toThrow(BadRequestException)
+        })
+
+        it('should throw NotFoundException if no product is found with provided ID', async () => {
+            const imageDto = { url: 'http://example.com/image.jpg', priority: 1 }
+            await expect(service.createImage(imageDto, 'non-existing-product-id')).rejects.toThrow(NotFoundException)
         })
     })
 
     describe('updateImage', () => {
-        it('should update an image and return success message', async () => {
-            const mockUpdateDto = { url: 'http://example.com/updated-image.jpg' }
-            const imageId = 'img_67890'
-            prismaService.image.update.mockResolvedValue({ id: imageId, ...mockUpdateDto })
-            expect(await service.updateImage(mockUpdateDto, imageId)).toEqual(`Image ${imageId} updated successfully`)
+        it('should update an existing image and return success message', async () => {
+            const imageDto = { url: 'http://example.com/updated-image.jpg', priority: 2 }
+            const image = mockImageArray[0]
+            expect(await service.updateImage(imageDto, image.id)).toContain('updated successfully')
         })
 
-        it('should throw NotFoundException if image does not exist', async () => {
-            const mockUpdateDto = { url: 'http://example.com/updated-image.jpg' }
-            const imageId = 'nonexistent'
-            prismaService.image.update.mockRejectedValue(new BadRequestException(`Image with ID ${imageId} does not exist`))
-            await expect(service.updateImage(mockUpdateDto, imageId)).rejects.toThrow(BadRequestException)
+        it('should throw BadRequestException if image ID is not provided', async () => {
+            const imageDto = { url: 'http://example.com/updated-image.jpg', priority: 2 }
+            await expect(service.updateImage(imageDto, null)).rejects.toThrow(BadRequestException)
+        })
+
+        it('should throw NotFoundException if no image is found with provided ID', async () => {
+            const imageDto = { url: 'http://example.com/updated-image.jpg', priority: 2 }
+            await expect(service.updateImage(imageDto, 'non-existing-id')).rejects.toThrow(NotFoundException)
         })
     })
 
     describe('deleteImage', () => {
-        it('should delete an image and return success message', async () => {
-            const imageId = 'img_67890'
-            prismaService.image.delete.mockResolvedValue({ count: 1 })
-            expect(await service.deleteImage(imageId)).toEqual(`Image ${imageId} deleted successfully`)
+        it('should delete an existing image and return success message', async () => {
+            const image = mockImageArray[0]
+            expect(await service.deleteImage(image.id)).toContain('deleted successfully')
         })
 
-        it('should throw NotFoundException if image does not exist', async () => {
-            const imageId = 'nonexistent'
-            prismaService.image.delete.mockRejectedValue(new BadRequestException(`Image with ID ${imageId} does not exist`))
-            await expect(service.deleteImage(imageId)).rejects.toThrow(BadRequestException)
+        it('should throw BadRequestException if image ID is not provided', async () => {
+            await expect(service.deleteImage(null)).rejects.toThrow(BadRequestException)
+        })
+
+        it('should throw NotFoundException if no image is found with provided ID', async () => {
+            await expect(service.deleteImage('non-existing-id')).rejects.toThrow(NotFoundException)
         })
     })
 })
-

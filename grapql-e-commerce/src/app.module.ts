@@ -25,9 +25,21 @@ import { ConfigModule } from '@nestjs/config'
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: true,
+      formatError: (error) => {
+        return {
+          message: error.message,
+          timestamp: new Date().toISOString(),
+          status: error.extensions?.status,
+          code: error.extensions?.code,
+          path: error.path,
+          stacktrace: error.extensions?.stacktrace || [],
+          locations: error.locations,
+          originalError: error.extensions?.originalError
+        }
+      },
     }),
     ProductModule,
     ImageModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }

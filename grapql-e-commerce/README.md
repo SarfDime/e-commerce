@@ -16,7 +16,8 @@ $ npm install
 
 ## Running the app
 
--- GraphQL Playground available at http://localhost:3000/graphql 
+- GraphQL Playground available at http://localhost:3000/graphql 
+- REPLACE Database info in .env file DBUSERNAME should be johndoe
 
 ```bash
 # development

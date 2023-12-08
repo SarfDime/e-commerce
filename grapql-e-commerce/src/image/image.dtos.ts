@@ -9,6 +9,7 @@ export class CreateImageInput {
     @IsUrl({}, { message: 'url value must be a valid URL' })
     url: string
 
+    @IsOptional()
     @Field()
     @IsNotEmpty()
     @IsNumber()
@@ -23,6 +24,7 @@ export class UpdateImageInput {
     @IsUrl(undefined, { message: 'url value is not valid URL.' })
     url?: string
 
+    @IsOptional()
     @Field({ nullable: true })
     @IsNumber()
     priority?: number

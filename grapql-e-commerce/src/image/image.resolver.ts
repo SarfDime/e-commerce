@@ -30,7 +30,7 @@ export class ImageResolver {
         return this.imageService.updateImage(id, image)
     }
 
-    @Mutation(_returns => Number)
+    @Mutation(_returns => String)
     removeImages(@Args({ name: 'iDs', type: () => [ID] }) iDs: string[]) {
         return this.imageService.removeImages(iDs)
     }

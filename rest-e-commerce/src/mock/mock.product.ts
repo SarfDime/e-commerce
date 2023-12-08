@@ -43,6 +43,28 @@ export const mockProductArray: ProductInterface[] = [
     }
 ]
 
+export const mockProduct = {
+    "id": "1",
+    "name": "Laptop",
+    "price": 999.99,
+    "status": "active",
+    "images": [
+        {
+            "id": '1',
+            "url": "http://example.com/laptop.jpg",
+            "priority": 1,
+            "product": {
+                "id": "1",
+                "name": "Laptop",
+                "price": 999.99,
+                "status": "active",
+                images: []
+            }
+        }
+    ]
+}
+
+
 
 
 
