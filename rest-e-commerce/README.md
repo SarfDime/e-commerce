@@ -20,7 +20,7 @@ $ npx prisma generate
 ## Running the app
 
 - Premade Postman collection located in root directory, demoes all CRUD operations.
-- REPLACE Database info in .env file remove <> eg. <DBUsername> should be johndoe
+- REPLACE Database info in .env file remove <> eg. ```<DBUsername>``` should be johndoe
 
 ```bash
 # development
